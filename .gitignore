@@ -1,0 +1,73 @@
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Go workspace file
+go.work
+
+# Dependency directories
+vendor/
+
+# Go module cache
+go.sum
+
+# Binaries for programs and plugins
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test coverage
+coverage.html
+coverage.out
+profile.out
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# API keys and secrets
+*.key
+*.pem
+config.json
+
+# Documentation
+docs/
+
+# Temporary files
+tmp/
+temp/
+
+# Log files
+*.log
+
+# Build directories
+build/
+dist/
