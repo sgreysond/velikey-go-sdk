@@ -17,9 +17,6 @@ go.work
 # Dependency directories
 vendor/
 
-# Go module cache
-go.sum
-
 # Binaries for programs and plugins
 main
 *.exe
