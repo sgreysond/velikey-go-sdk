@@ -33,7 +33,7 @@ func main() {
 
 	// 2. Deploy security policies for Kubernetes workloads
 	fmt.Println("\n2. 📋 Kubernetes Security Policy Deployment")
-	
+
 	// Create policy for microservices
 	policyBuilder := client.NewPolicyBuilder().
 		Name("Kubernetes Microservices Security").
@@ -50,10 +50,10 @@ func main() {
 
 	// 3. Configure agents for Kubernetes deployment
 	fmt.Println("\n3. 🤖 Agent Configuration for Kubernetes")
-	
+
 	agentConfig := velikey.NewAgentConfigBuilder().
 		Namespace("aegis-system").
-		Replicas(3). // High availability
+		Replicas(3).                // High availability
 		Resources("200m", "256Mi"). // Production resources
 		BackendURL("http://app-service.default.svc.cluster.local:8080").
 		Build()
@@ -65,13 +65,13 @@ func main() {
 
 	// 4. Monitor cluster security posture
 	fmt.Println("\n4. 🔐 Cluster Security Monitoring")
-	
+
 	// Start continuous monitoring
 	go startSecurityMonitoring(ctx, client)
 
 	// 5. Compliance validation for Kubernetes
 	fmt.Println("\n5. ✅ Kubernetes Compliance Validation")
-	
+
 	complianceChecker := client.NewComplianceChecker([]string{"soc2", "pci-dss"})
 	failingFrameworks, err := complianceChecker.CheckThresholds(ctx)
 	if err != nil {
@@ -84,7 +84,7 @@ func main() {
 
 	// 6. Agent lifecycle management
 	fmt.Println("\n6. 🔄 Agent Lifecycle Management")
-	
+
 	agents, err := client.Agents.List(ctx)
 	if err != nil {
 		log.Printf("Failed to list agents: %v", err)
@@ -96,7 +96,7 @@ func main() {
 				status = "✅"
 			}
 			fmt.Printf("  %s %s (%s) - %s\n", status, agent.Name, agent.Version, agent.Location)
-			
+
 			// Check if agent needs updates
 			if needsUpdate(agent) {
 				fmt.Printf("    🔄 Scheduling update for %s\n", agent.Name)
@@ -112,7 +112,7 @@ func main() {
 
 	// 7. Performance optimization for Kubernetes
 	fmt.Println("\n7. 📊 Performance Optimization")
-	
+
 	suggestions, err := client.GetOptimizationSuggestions(ctx)
 	if err != nil {
 		log.Printf("Failed to get optimization suggestions: %v", err)
@@ -123,7 +123,7 @@ func main() {
 				fmt.Printf("  • %s\n", suggestion)
 			}
 		}
-		
+
 		if len(suggestions.Cost) > 0 {
 			fmt.Println("💰 Cost Optimization:")
 			for _, suggestion := range suggestions.Cost {
@@ -166,27 +166,27 @@ status:
 
 func startSecurityMonitoring(ctx context.Context, client *velikey.Client) {
 	fmt.Println("🔍 Starting continuous security monitoring...")
-	
+
 	// Monitor for security alerts
 	alertHandler := velikey.AlertHandlerFunc(func(ctx context.Context, alert velikey.SecurityAlert) error {
 		emoji := map[string]string{
 			"info":      "ℹ️",
 			"warning":   "⚠️",
-			"error":     "❌", 
+			"error":     "❌",
 			"critical":  "🔥",
 			"emergency": "🚨",
 		}[alert.Severity]
-		
+
 		fmt.Printf("\n🚨 Security Alert: %s %s\n", emoji, alert.Title)
 		fmt.Printf("   Description: %s\n", alert.Description)
 		fmt.Printf("   Source: %s\n", alert.Source)
-		
+
 		// In a real operator, you might:
 		// - Create Kubernetes events
 		// - Update CRD status
 		// - Trigger remediation workflows
 		// - Send notifications to ops teams
-		
+
 		return nil
 	})
 
@@ -197,8 +197,8 @@ func startSecurityMonitoring(ctx context.Context, client *velikey.Client) {
 
 func needsUpdate(agent velikey.Agent) bool {
 	// Simple version check - in production, you'd have more sophisticated logic
-	return agent.Version != "latest" && 
-		   time.Since(agent.LastHeartbeat) < 5*time.Minute // Only update healthy agents
+	return agent.Version != "latest" &&
+		time.Since(agent.LastHeartbeat) < 5*time.Minute // Only update healthy agents
 }
 
 // Kubernetes operator utilities
@@ -277,7 +277,7 @@ spec:
           value: "0.0.0.0:8444"
         - name: AEGIS_HEALTH_ADDR
           value: "0.0.0.0:9080"
-`, 
+`,
 		namespace, namespace, namespace,
 		agentConfig["replicas"],
 		agentConfig["resources"].(map[string]interface{})["cpu"],
