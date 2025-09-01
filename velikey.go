@@ -34,7 +34,6 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/google/uuid"
 	"golang.org/x/time/rate"
 )
 

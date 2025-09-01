@@ -184,13 +184,7 @@ type BulkUpdateResult struct {
 	Results    []Policy `json:"results"`
 }
 
-// CreatePolicyRequest represents a policy creation request
-type CreatePolicyRequest struct {
-	Name            string                 `json:"name"`
-	Description     string                 `json:"description,omitempty"`
-	Rules           map[string]interface{} `json:"rules"`
-	EnforcementMode string                 `json:"enforcement_mode"`
-}
+
 
 // UpdateOptions for agent updates
 type UpdateOptions struct {
@@ -217,6 +211,71 @@ const (
 	GDPR       ComplianceFramework = "gdpr"
 	Custom     ComplianceFramework = "custom"
 )
+
+// Error types
+
+// APIError represents a general API error
+type APIError struct {
+	StatusCode int
+	Message    string
+}
+
+func (e *APIError) Error() string {
+	return e.Message
+}
+
+// AuthenticationError represents an authentication failure
+type AuthenticationError struct {
+	Message string
+}
+
+func (e *AuthenticationError) Error() string {
+	return e.Message
+}
+
+// ValidationError represents a validation failure
+type ValidationError struct {
+	Message string
+}
+
+func (e *ValidationError) Error() string {
+	return e.Message
+}
+
+// NotFoundError represents a resource not found error
+type NotFoundError struct {
+	Message string
+}
+
+func (e *NotFoundError) Error() string {
+	return e.Message
+}
+
+// RateLimitError represents a rate limit exceeded error
+type RateLimitError struct {
+	Message string
+}
+
+func (e *RateLimitError) Error() string {
+	return e.Message
+}
+
+// Metrics represents system metrics
+type Metrics struct {
+	CPU         float64           `json:"cpu"`
+	Memory      float64           `json:"memory"`
+	Connections int               `json:"connections"`
+	Throughput  float64           `json:"throughput"`
+	Latency     map[string]float64 `json:"latency"`
+}
+
+// DiagnosticsResult represents the result of a diagnostic run
+type DiagnosticsResult struct {
+	Status  string                 `json:"status"`
+	Checks  map[string]bool        `json:"checks"`
+	Details map[string]interface{} `json:"details"`
+	Errors  []string               `json:"errors"`
+}
 
 // PolicyMode represents policy enforcement modes
 type PolicyMode string

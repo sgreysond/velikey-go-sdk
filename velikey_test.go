@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 	"time"
 
@@ -315,5 +316,3 @@ func TestIntegration(t *testing.T) {
 		assert.LessOrEqual(t, status.HealthScore, 100)
 	})
 }
-
-import "os"
