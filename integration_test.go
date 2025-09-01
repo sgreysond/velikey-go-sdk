@@ -5,18 +5,23 @@ import (
 )
 
 func TestClientIntegration(t *testing.T) {
-	client, err := NewClient("test-key", "https://localhost:8443")
-	if err != nil && client == nil {
+	config := Config{
+		APIKey:  "test-key",
+		BaseURL: "https://localhost:8443",
+	}
+	client := NewClient(config)
+	if client == nil {
 		t.Errorf("Client creation should handle test mode")
 	}
 }
 
 func TestPolicyManagement(t *testing.T) {
-	policy := Policy{
-		Name: "test-policy",
-		Algorithms: []string{"aes-256-gcm"},
+	// Test policy configuration
+	policyConfig := map[string]interface{}{
+		"name":       "test-policy",
+		"algorithms": []string{"aes-256-gcm"},
 	}
-	if policy.Name != "test-policy" {
+	if policyConfig["name"] != "test-policy" {
 		t.Errorf("Policy name mismatch")
 	}
 }
