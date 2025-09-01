@@ -99,7 +99,7 @@ func TestClient_QuickSetup(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		assert.Equal(t, "/api/setup/quick", r.URL.Path)
 		assert.Equal(t, "POST", r.Method)
-		
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{
@@ -137,7 +137,7 @@ func TestClient_QuickSetup(t *testing.T) {
 func TestPolicyBuilder(t *testing.T) {
 	mockAxiosInstance := &http.Client{}
 	client := &Client{httpClient: mockAxiosInstance}
-	
+
 	t.Run("build configuration", func(t *testing.T) {
 		builder := client.NewPolicyBuilder()
 		config := builder.
@@ -151,10 +151,10 @@ func TestPolicyBuilder(t *testing.T) {
 		assert.Equal(t, "Test Policy", config["name"])
 		assert.Equal(t, "Test policy description", config["description"])
 		assert.Equal(t, "enforce", config["enforcement_mode"])
-		
+
 		rules := config["rules"].(map[string]interface{})
 		assert.Equal(t, "SOC2 Type II", rules["compliance_standard"])
-		
+
 		aegis := rules["aegis"].(map[string]interface{})
 		pqReady := aegis["pq_ready"].([]string)
 		assert.Contains(t, pqReady, "TLS_KYBER768_P256_SHA256")
@@ -162,7 +162,7 @@ func TestPolicyBuilder(t *testing.T) {
 
 	t.Run("validation errors", func(t *testing.T) {
 		builder := client.NewPolicyBuilder()
-		
+
 		// Should fail without name
 		_, err := builder.Create(context.Background())
 		assert.Error(t, err)
@@ -173,9 +173,9 @@ func TestPolicyBuilder(t *testing.T) {
 func TestCreateFromTemplate(t *testing.T) {
 	t.Run("SOC2 template", func(t *testing.T) {
 		config := CreateFromTemplate(SOC2TypeII, "Test SOC2 Policy")
-		
+
 		assert.Equal(t, "SOC2 Type II", config["compliance_standard"])
-		
+
 		aegis := config["aegis"].(map[string]interface{})
 		assert.NotEmpty(t, aegis["pq_ready"])
 		assert.NotEmpty(t, aegis["preferred"])
@@ -189,7 +189,7 @@ func TestCreateFromTemplate(t *testing.T) {
 			WithPostQuantum(),
 			WithEnforcementMode("enforce"),
 		)
-		
+
 		assert.Equal(t, "enforce", config["enforcement_mode"])
 	})
 }
@@ -216,10 +216,10 @@ func TestComplianceChecker(t *testing.T) {
 	})
 
 	checker := client.NewComplianceChecker([]string{"soc2", "pci-dss"})
-	
+
 	ctx := context.Background()
 	results, err := checker.ValidateAll(ctx)
-	
+
 	require.NoError(t, err)
 	assert.Len(t, results, 2)
 	assert.True(t, results["soc2"].Compliant)
@@ -237,11 +237,11 @@ func TestAgentConfigBuilder(t *testing.T) {
 
 	assert.Equal(t, "custom-namespace", config["namespace"])
 	assert.Equal(t, 3, config["replicas"])
-	
+
 	resources := config["resources"].(map[string]interface{})
 	assert.Equal(t, "200m", resources["cpu"])
 	assert.Equal(t, "512Mi", resources["memory"])
-	
+
 	networking := config["networking"].(map[string]interface{})
 	assert.Equal(t, "https://backend.example.com", networking["backend_url"])
 }

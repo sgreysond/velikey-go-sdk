@@ -17,7 +17,7 @@ func (s *AgentsService) List(ctx context.Context) ([]Agent, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var agents []Agent
 	if err := json.NewDecoder(resp.Body).Decode(&agents); err != nil {
 		return nil, err
@@ -32,7 +32,7 @@ func (s *AgentsService) Get(ctx context.Context, id string) (*Agent, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var agent Agent
 	if err := json.NewDecoder(resp.Body).Decode(&agent); err != nil {
 		return nil, err
@@ -60,7 +60,7 @@ func (s *PoliciesService) Create(ctx context.Context, req CreatePolicyRequest) (
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var policy Policy
 	if err := json.NewDecoder(resp.Body).Decode(&policy); err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (s *PoliciesService) List(ctx context.Context) ([]Policy, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var policies []Policy
 	if err := json.NewDecoder(resp.Body).Decode(&policies); err != nil {
 		return nil, err
@@ -90,7 +90,7 @@ func (s *PoliciesService) Get(ctx context.Context, id string) (*Policy, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var policy Policy
 	if err := json.NewDecoder(resp.Body).Decode(&policy); err != nil {
 		return nil, err
@@ -110,7 +110,7 @@ func (s *MonitoringService) GetActiveAlerts(ctx context.Context) ([]SecurityAler
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var alerts []SecurityAlert
 	if err := json.NewDecoder(resp.Body).Decode(&alerts); err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (s *MonitoringService) GetMetrics(ctx context.Context) (*Metrics, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var metrics Metrics
 	if err := json.NewDecoder(resp.Body).Decode(&metrics); err != nil {
 		return nil, err
@@ -145,7 +145,7 @@ func (s *ComplianceService) Validate(ctx context.Context, framework string) (*Co
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var validation ComplianceValidation
 	if err := json.NewDecoder(resp.Body).Decode(&validation); err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (s *DiagnosticsService) RunDiagnostics(ctx context.Context) (*DiagnosticsRe
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var result DiagnosticsResult
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -185,7 +185,7 @@ func (s *BillingService) GetUsage(ctx context.Context) (*UsageMetrics, error) {
 		return nil, err
 	}
 	defer resp.Body.Close()
-	
+
 	var usage UsageMetrics
 	if err := json.NewDecoder(resp.Body).Decode(&usage); err != nil {
 		return nil, err

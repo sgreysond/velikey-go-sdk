@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/velikey/velikey-go-sdk"
@@ -99,13 +100,12 @@ func main() {
 			// Check if agent needs updates
 			if needsUpdate(agent) {
 				fmt.Printf("    🔄 Scheduling update for %s\n", agent.Name)
-				err := client.Agents.TriggerUpdate(ctx, agent.ID, velikey.UpdateOptions{
-					Version: "latest",
-					Strategy: "rolling",
-				})
-				if err != nil {
-					log.Printf("Failed to trigger update: %v", err)
-				}
+				// In a real implementation, this would trigger an update
+				// err := client.Agents.Update(ctx, agent.ID, velikey.UpdateOptions{
+				//     Version: "latest",
+				//     Strategy: "rolling",
+				// })
+				log.Printf("Would update agent %s to latest version", agent.Name)
 			}
 		}
 	}
@@ -202,7 +202,6 @@ func needsUpdate(agent velikey.Agent) bool {
 }
 
 // Kubernetes operator utilities
-import "strings"
 
 func generateHelmValues(agentConfig map[string]interface{}, policy *velikey.Policy) map[string]interface{} {
 	return map[string]interface{}{

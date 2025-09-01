@@ -6,30 +6,30 @@ import (
 
 // Agent represents a VeliKey agent
 type Agent struct {
-	ID           string            `json:"id"`
-	Name         string            `json:"name"`
-	Version      string            `json:"version"`
-	Status       string            `json:"status"`
-	Location     string            `json:"location"`
-	Capabilities []string          `json:"capabilities"`
-	LastHeartbeat time.Time        `json:"last_heartbeat"`
-	Uptime       string            `json:"uptime"`
-	Metadata     map[string]string `json:"metadata"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Version       string            `json:"version"`
+	Status        string            `json:"status"`
+	Location      string            `json:"location"`
+	Capabilities  []string          `json:"capabilities"`
+	LastHeartbeat time.Time         `json:"last_heartbeat"`
+	Uptime        string            `json:"uptime"`
+	Metadata      map[string]string `json:"metadata"`
 }
 
 // Policy represents a security policy
 type Policy struct {
-	ID                string                 `json:"id"`
-	Name              string                 `json:"name"`
-	Description       string                 `json:"description,omitempty"`
-	ComplianceFramework string               `json:"compliance_framework"`
-	Rules             map[string]interface{} `json:"rules"`
-	EnforcementMode   string                 `json:"enforcement_mode"`
-	IsActive          bool                   `json:"is_active"`
-	Version           int                    `json:"version"`
-	CreatedAt         time.Time              `json:"created_at"`
-	UpdatedAt         time.Time              `json:"updated_at"`
-	CreatedBy         string                 `json:"created_by,omitempty"`
+	ID                  string                 `json:"id"`
+	Name                string                 `json:"name"`
+	Description         string                 `json:"description,omitempty"`
+	ComplianceFramework string                 `json:"compliance_framework"`
+	Rules               map[string]interface{} `json:"rules"`
+	EnforcementMode     string                 `json:"enforcement_mode"`
+	IsActive            bool                   `json:"is_active"`
+	Version             int                    `json:"version"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
+	CreatedBy           string                 `json:"created_by,omitempty"`
 }
 
 // PolicyTemplate represents a pre-built policy template
@@ -44,12 +44,12 @@ type PolicyTemplate struct {
 
 // HealthScore represents customer health metrics
 type HealthScore struct {
-	OverallScore    int               `json:"overall_score"`
-	CategoryScores  map[string]int    `json:"category_scores"`
-	RiskFactors     []string          `json:"risk_factors"`
-	Recommendations []string          `json:"recommendations"`
-	Trend           string            `json:"trend"`
-	CalculatedAt    time.Time         `json:"calculated_at"`
+	OverallScore    int            `json:"overall_score"`
+	CategoryScores  map[string]int `json:"category_scores"`
+	RiskFactors     []string       `json:"risk_factors"`
+	Recommendations []string       `json:"recommendations"`
+	Trend           string         `json:"trend"`
+	CalculatedAt    time.Time      `json:"calculated_at"`
 }
 
 // SecurityAlert represents a security alert
@@ -90,24 +90,24 @@ type DiagnosticSuite struct {
 
 // DiagnosticResult represents a single diagnostic test result
 type DiagnosticResult struct {
-	TestName       string            `json:"test_name"`
-	Category       string            `json:"category"`
-	Status         string            `json:"status"`
-	Message        string            `json:"message"`
-	Details        string            `json:"details,omitempty"`
-	FixSuggestions []FixSuggestion   `json:"fix_suggestions"`
-	DurationMs     int64             `json:"duration_ms"`
+	TestName       string          `json:"test_name"`
+	Category       string          `json:"category"`
+	Status         string          `json:"status"`
+	Message        string          `json:"message"`
+	Details        string          `json:"details,omitempty"`
+	FixSuggestions []FixSuggestion `json:"fix_suggestions"`
+	DurationMs     int64           `json:"duration_ms"`
 }
 
 // DiagnosticSummary represents overall diagnostic results
 type DiagnosticSummary struct {
-	TotalTests      int      `json:"total_tests"`
-	PassedTests     int      `json:"passed_tests"`
-	FailedTests     int      `json:"failed_tests"`
-	WarningTests    int      `json:"warning_tests"`
-	OverallHealth   string   `json:"overall_health"`
-	CriticalIssues  []string `json:"critical_issues"`
-	NextSteps       []string `json:"next_steps"`
+	TotalTests     int      `json:"total_tests"`
+	PassedTests    int      `json:"passed_tests"`
+	FailedTests    int      `json:"failed_tests"`
+	WarningTests   int      `json:"warning_tests"`
+	OverallHealth  string   `json:"overall_health"`
+	CriticalIssues []string `json:"critical_issues"`
+	NextSteps      []string `json:"next_steps"`
 }
 
 // FixSuggestion represents an automated fix suggestion
@@ -131,13 +131,13 @@ type SecurityStatus struct {
 
 // CustomerInfo represents customer account information
 type CustomerInfo struct {
-	ID           string     `json:"id"`
-	Email        string     `json:"email"`
-	Company      string     `json:"company"`
-	Plan         string     `json:"plan"`
-	Status       string     `json:"status"`
-	TrialEndsAt  *time.Time `json:"trial_ends_at"`
-	CreatedAt    time.Time  `json:"created_at"`
+	ID          string     `json:"id"`
+	Email       string     `json:"email"`
+	Company     string     `json:"company"`
+	Plan        string     `json:"plan"`
+	Status      string     `json:"status"`
+	TrialEndsAt *time.Time `json:"trial_ends_at"`
+	CreatedAt   time.Time  `json:"created_at"`
 }
 
 // SetupOptions for quick setup
@@ -183,8 +183,6 @@ type BulkUpdateResult struct {
 	Failed     int      `json:"failed"`
 	Results    []Policy `json:"results"`
 }
-
-
 
 // UpdateOptions for agent updates
 type UpdateOptions struct {
@@ -262,10 +260,10 @@ func (e *RateLimitError) Error() string {
 
 // Metrics represents system metrics
 type Metrics struct {
-	CPU         float64           `json:"cpu"`
-	Memory      float64           `json:"memory"`
-	Connections int               `json:"connections"`
-	Throughput  float64           `json:"throughput"`
+	CPU         float64            `json:"cpu"`
+	Memory      float64            `json:"memory"`
+	Connections int                `json:"connections"`
+	Throughput  float64            `json:"throughput"`
 	Latency     map[string]float64 `json:"latency"`
 }
 
@@ -301,9 +299,9 @@ const (
 type AlertSeverity string
 
 const (
-	Info      AlertSeverity = "info"
-	Warning   AlertSeverity = "warning"
+	Info       AlertSeverity = "info"
+	Warning    AlertSeverity = "warning"
 	AlertError AlertSeverity = "error"
-	Critical  AlertSeverity = "critical"
-	Emergency AlertSeverity = "emergency"
+	Critical   AlertSeverity = "critical"
+	Emergency  AlertSeverity = "emergency"
 )

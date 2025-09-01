@@ -156,7 +156,7 @@ func (c *Client) request(ctx context.Context, method, endpoint string, params ma
 	if resp.StatusCode >= 400 {
 		defer resp.Body.Close()
 		bodyBytes, _ := io.ReadAll(resp.Body)
-		
+
 		switch resp.StatusCode {
 		case 401:
 			return nil, &AuthenticationError{Message: "Invalid API key or expired token"}
@@ -376,10 +376,10 @@ func CreateFromTemplate(template ComplianceFramework, name string, options ...Po
 		SOC2TypeII: {
 			"compliance_standard": "SOC2 Type II",
 			"aegis": map[string]interface{}{
-				"pq_ready":             []string{"TLS_KYBER768_P256_SHA256"},
-				"preferred":            []string{"TLS_AES_256_GCM_SHA384"},
-				"fallback_acceptable":  []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"},
-				"prohibited":           []string{"TLS 1.0", "TLS 1.1", "SSL V2", "SSL V3"},
+				"pq_ready":            []string{"TLS_KYBER768_P256_SHA256"},
+				"preferred":           []string{"TLS_AES_256_GCM_SHA384"},
+				"fallback_acceptable": []string{"TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384"},
+				"prohibited":          []string{"TLS 1.0", "TLS 1.1", "SSL V2", "SSL V3"},
 			},
 			"somnus": map[string]interface{}{
 				"pq_ready":            []string{"Kyber-768 + AES-KWP"},
