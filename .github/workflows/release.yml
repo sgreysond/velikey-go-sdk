@@ -1,0 +1,22 @@
+name: Release (Go)
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to create (vX.Y.Z), no publish to pkg proxy"
+        required: true
+        type: string
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create tag
+        run: |
+          git tag ${{ inputs.tag }}
+          git push origin ${{ inputs.tag }}
+
