@@ -1,125 +1,84 @@
 package velikey
 
-import (
-	"time"
-)
+import "time"
 
-// Agent represents a VeliKey agent
+// Agent represents an agent record returned by Axis APIs.
 type Agent struct {
-	ID            string            `json:"id"`
-	Name          string            `json:"name"`
-	Version       string            `json:"version"`
-	Status        string            `json:"status"`
-	Location      string            `json:"location"`
-	Capabilities  []string          `json:"capabilities"`
-	LastHeartbeat time.Time         `json:"last_heartbeat"`
-	Uptime        string            `json:"uptime"`
-	Metadata      map[string]string `json:"metadata"`
+	ID            string     `json:"id"`
+	TenantID      string     `json:"tenantId,omitempty"`
+	AgentID       string     `json:"agentId,omitempty"`
+	Name          string     `json:"name"`
+	Status        string     `json:"status"`
+	Version       string     `json:"version,omitempty"`
+	Capabilities  []string   `json:"capabilities,omitempty"`
+	LastHeartbeat *time.Time `json:"lastHeartbeat,omitempty"`
+	EnrolledAt    *time.Time `json:"enrolledAt,omitempty"`
+	CreatedAt     *time.Time `json:"createdAt,omitempty"`
+	UpdatedAt     *time.Time `json:"updatedAt,omitempty"`
 }
 
-// Policy represents a security policy
+// Policy represents a policy returned by Axis APIs.
 type Policy struct {
-	ID                  string                 `json:"id"`
-	Name                string                 `json:"name"`
-	Description         string                 `json:"description,omitempty"`
-	ComplianceFramework string                 `json:"compliance_framework"`
-	Rules               map[string]interface{} `json:"rules"`
-	EnforcementMode     string                 `json:"enforcement_mode"`
-	IsActive            bool                   `json:"is_active"`
-	Version             int                    `json:"version"`
-	CreatedAt           time.Time              `json:"created_at"`
-	UpdatedAt           time.Time              `json:"updated_at"`
-	CreatedBy           string                 `json:"created_by,omitempty"`
+	ID          string                 `json:"id"`
+	Name        string                 `json:"name"`
+	Description string                 `json:"description,omitempty"`
+	Scope       string                 `json:"scope,omitempty"`
+	ScopeValue  string                 `json:"scopeValue,omitempty"`
+	PolicyType  string                 `json:"policyType,omitempty"`
+	Rules       map[string]interface{} `json:"rules,omitempty"`
+	Priority    int                    `json:"priority,omitempty"`
+	IsActive    bool                   `json:"isActive"`
+	Analysis    map[string]interface{} `json:"analysis,omitempty"`
+	CreatedAt   *time.Time             `json:"createdAt,omitempty"`
+	UpdatedAt   *time.Time             `json:"updatedAt,omitempty"`
 }
 
-// PolicyTemplate represents a pre-built policy template
-type PolicyTemplate struct {
-	ID                  string                 `json:"id"`
-	Name                string                 `json:"name"`
-	Description         string                 `json:"description"`
-	ComplianceFramework string                 `json:"compliance_framework"`
-	Algorithms          map[string]interface{} `json:"algorithms"`
-	RecommendedFor      []string               `json:"recommended_for"`
+// Alert represents a tenant-scoped alert.
+type Alert struct {
+	ID          string                 `json:"id"`
+	Severity    string                 `json:"severity"`
+	Category    string                 `json:"category"`
+	Title       string                 `json:"title"`
+	Description string                 `json:"description"`
+	Resolved    bool                   `json:"resolved"`
+	Source      map[string]interface{} `json:"source,omitempty"`
+	Metadata    map[string]interface{} `json:"metadata,omitempty"`
+	CreatedAt   *time.Time             `json:"createdAt,omitempty"`
+	ResolvedAt  *time.Time             `json:"resolvedAt,omitempty"`
 }
 
-// HealthScore represents customer health metrics
-type HealthScore struct {
-	OverallScore    int            `json:"overall_score"`
-	CategoryScores  map[string]int `json:"category_scores"`
-	RiskFactors     []string       `json:"risk_factors"`
-	Recommendations []string       `json:"recommendations"`
-	Trend           string         `json:"trend"`
-	CalculatedAt    time.Time      `json:"calculated_at"`
+// UsagePoint captures usage and estimated cost for a period.
+type UsagePoint struct {
+	Period        string  `json:"period"`
+	DayOfPeriod   int     `json:"dayOfPeriod"`
+	DaysInPeriod  int     `json:"daysInPeriod"`
+	EncryptionGB  float64 `json:"encryptionGB"`
+	TelemetryGB   float64 `json:"telemetryGB"`
+	Environments  int     `json:"environments"`
+	Agents        int     `json:"agents"`
+	EstimatedCost float64 `json:"estimatedCost"`
 }
 
-// SecurityAlert represents a security alert
-type SecurityAlert struct {
-	ID          string            `json:"id"`
-	Title       string            `json:"title"`
-	Description string            `json:"description"`
-	Severity    string            `json:"severity"`
-	Category    string            `json:"category"`
-	Source      string            `json:"source"`
-	CreatedAt   time.Time         `json:"created_at"`
-	Resolved    bool              `json:"resolved"`
-	Metadata    map[string]string `json:"metadata"`
+// UsageResponse is the response payload from /api/usage.
+type UsageResponse struct {
+	Current    UsagePoint   `json:"current"`
+	Usage      UsagePoint   `json:"usage"`
+	Historical []UsagePoint `json:"historical"`
 }
 
-// UsageMetrics represents customer usage data
-type UsageMetrics struct {
-	AgentsDeployed       int       `json:"agents_deployed"`
-	PoliciesActive       int       `json:"policies_active"`
-	ConnectionsProcessed int64     `json:"connections_processed"`
-	BytesAnalyzed        int64     `json:"bytes_analyzed"`
-	UptimePercentage     float64   `json:"uptime_percentage"`
-	AvgLatencyMs         float64   `json:"avg_latency_ms"`
-	PeriodStart          time.Time `json:"period_start"`
-	PeriodEnd            time.Time `json:"period_end"`
+// UsageMetrics is kept as a compatibility alias.
+type UsageMetrics = UsagePoint
+
+// HealthResponse represents /api/health output.
+type HealthResponse struct {
+	Status    string            `json:"status"`
+	Timestamp time.Time         `json:"timestamp"`
+	Version   string            `json:"version"`
+	Checks    map[string]string `json:"checks,omitempty"`
+	Error     string            `json:"error,omitempty"`
 }
 
-// DiagnosticSuite represents diagnostic test results
-type DiagnosticSuite struct {
-	ID          string             `json:"id"`
-	CustomerID  string             `json:"customer_id"`
-	StartedAt   time.Time          `json:"started_at"`
-	CompletedAt *time.Time         `json:"completed_at"`
-	Status      string             `json:"status"`
-	Results     []DiagnosticResult `json:"results"`
-	Summary     DiagnosticSummary  `json:"summary"`
-}
-
-// DiagnosticResult represents a single diagnostic test result
-type DiagnosticResult struct {
-	TestName       string          `json:"test_name"`
-	Category       string          `json:"category"`
-	Status         string          `json:"status"`
-	Message        string          `json:"message"`
-	Details        string          `json:"details,omitempty"`
-	FixSuggestions []FixSuggestion `json:"fix_suggestions"`
-	DurationMs     int64           `json:"duration_ms"`
-}
-
-// DiagnosticSummary represents overall diagnostic results
-type DiagnosticSummary struct {
-	TotalTests     int      `json:"total_tests"`
-	PassedTests    int      `json:"passed_tests"`
-	FailedTests    int      `json:"failed_tests"`
-	WarningTests   int      `json:"warning_tests"`
-	OverallHealth  string   `json:"overall_health"`
-	CriticalIssues []string `json:"critical_issues"`
-	NextSteps      []string `json:"next_steps"`
-}
-
-// FixSuggestion represents an automated fix suggestion
-type FixSuggestion struct {
-	Title            string `json:"title"`
-	Description      string `json:"description"`
-	Command          string `json:"command,omitempty"`
-	DocumentationURL string `json:"documentation_url,omitempty"`
-	AutoFixable      bool   `json:"auto_fixable"`
-}
-
-// SecurityStatus represents comprehensive security posture
+// SecurityStatus is a normalized summary built from alert stats.
 type SecurityStatus struct {
 	AgentsOnline    string    `json:"agents_online"`
 	PoliciesActive  int       `json:"policies_active"`
@@ -129,25 +88,93 @@ type SecurityStatus struct {
 	LastUpdated     time.Time `json:"last_updated"`
 }
 
-// CustomerInfo represents customer account information
-type CustomerInfo struct {
-	ID          string     `json:"id"`
-	Email       string     `json:"email"`
-	Company     string     `json:"company"`
-	Plan        string     `json:"plan"`
-	Status      string     `json:"status"`
-	TrialEndsAt *time.Time `json:"trial_ends_at"`
-	CreatedAt   time.Time  `json:"created_at"`
+// MaintenanceWindow defines a rollout maintenance window.
+type MaintenanceWindow struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
 }
 
-// SetupOptions for quick setup
+// PlanRolloutRequest is sent to /api/rollouts/plan.
+type PlanRolloutRequest struct {
+	PolicyID             string              `json:"policyId"`
+	CanaryPercent        *int                `json:"canaryPercent,omitempty"`
+	StabilizationWindowS *int                `json:"stabilizationWindowS,omitempty"`
+	MaintenanceWindows   []MaintenanceWindow `json:"maintenanceWindows,omitempty"`
+	Explain              bool                `json:"explain,omitempty"`
+}
+
+// ApplyRolloutRequest is sent to /api/rollouts/apply.
+type ApplyRolloutRequest struct {
+	PlanID             string              `json:"planId"`
+	DryRun             bool                `json:"dryRun"`
+	IdempotencyKey     string              `json:"idempotencyKey,omitempty"`
+	Confirmation       string              `json:"confirmation,omitempty"`
+	Confirm            bool                `json:"confirm,omitempty"`
+	MaintenanceWindows []MaintenanceWindow `json:"maintenanceWindows,omitempty"`
+}
+
+// RollbackRolloutRequest is sent to /api/rollouts/rollback.
+type RollbackRolloutRequest struct {
+	RollbackToken string `json:"rollbackToken"`
+	Confirmation  string `json:"confirmation,omitempty"`
+	Confirm       bool   `json:"confirm,omitempty"`
+}
+
+// RolloutReceiptRef references the signed receipt generated by Axis.
+type RolloutReceiptRef struct {
+	ID string `json:"id"`
+}
+
+// RolloutOperationData captures common fields returned from plan/apply/rollback endpoints.
+type RolloutOperationData struct {
+	PlanID        string `json:"plan_id,omitempty"`
+	RolloutID     string `json:"rollout_id,omitempty"`
+	RollbackID    string `json:"rollback_id,omitempty"`
+	RollbackToken string `json:"rollback_token,omitempty"`
+}
+
+// RolloutOperationResponse is a normalized rollout operation response.
+type RolloutOperationResponse struct {
+	Success        bool                   `json:"success"`
+	Error          string                 `json:"error,omitempty"`
+	Message        string                 `json:"message,omitempty"`
+	Data           RolloutOperationData   `json:"data,omitempty"`
+	RolloutReceipt *RolloutReceiptRef     `json:"rolloutReceipt,omitempty"`
+	Raw            map[string]interface{} `json:"-"`
+}
+
+// RolloutReceipt represents an item returned by /api/rollout-receipts.
+type RolloutReceipt struct {
+	ID        string                 `json:"id"`
+	Action    string                 `json:"action"`
+	Resource  string                 `json:"resourceId"`
+	CreatedAt *time.Time             `json:"createdAt,omitempty"`
+	Metadata  map[string]interface{} `json:"metadata,omitempty"`
+}
+
+// TelemetryIngestRequest is accepted by /api/telemetry/ingest.
+type TelemetryIngestRequest struct {
+	Event      string                 `json:"event"`
+	Properties map[string]interface{} `json:"properties,omitempty"`
+	Timestamp  string                 `json:"timestamp,omitempty"`
+}
+
+// TelemetryIngestResponse captures ingest acknowledgement.
+type TelemetryIngestResponse struct {
+	Success   bool   `json:"success"`
+	Accepted  bool   `json:"accepted"`
+	Queued    bool   `json:"queued"`
+	Timestamp string `json:"timestamp"`
+}
+
+// SetupOptions is retained for API compatibility only.
 type SetupOptions struct {
 	ComplianceFramework string `json:"compliance_framework"`
 	EnforcementMode     string `json:"enforcement_mode"`
 	PostQuantum         bool   `json:"post_quantum"`
 }
 
-// SetupResult from quick setup
+// SetupResult is retained for API compatibility only.
 type SetupResult struct {
 	PolicyID               string            `json:"policy_id"`
 	PolicyName             string            `json:"policy_name"`
@@ -155,7 +182,7 @@ type SetupResult struct {
 	NextSteps              []string          `json:"next_steps"`
 }
 
-// ComplianceValidation represents compliance check results
+// ComplianceValidation is retained for API compatibility only.
 type ComplianceValidation struct {
 	Compliant       bool     `json:"compliant"`
 	Score           int      `json:"score"`
@@ -163,43 +190,28 @@ type ComplianceValidation struct {
 	Recommendations []string `json:"recommendations"`
 }
 
-// OptimizationSuggestions represents system optimization recommendations
+// OptimizationSuggestions is retained for API compatibility only.
 type OptimizationSuggestions struct {
 	Performance []string `json:"performance"`
 	Security    []string `json:"security"`
 	Cost        []string `json:"cost"`
 }
 
-// PolicyUpdate represents a policy update operation
+// PolicyUpdate is retained for API compatibility only.
 type PolicyUpdate struct {
 	PolicyID    string                 `json:"policy_id"`
 	Changes     map[string]interface{} `json:"changes"`
 	Description string                 `json:"description,omitempty"`
 }
 
-// BulkUpdateResult represents bulk policy update results
+// BulkUpdateResult is retained for API compatibility only.
 type BulkUpdateResult struct {
 	Successful int      `json:"successful"`
 	Failed     int      `json:"failed"`
 	Results    []Policy `json:"results"`
 }
 
-// UpdateOptions for agent updates
-type UpdateOptions struct {
-	Version  string `json:"version"`
-	Strategy string `json:"strategy"` // "rolling", "blue-green", "canary"
-}
-
-// HealthResponse represents API health check response
-type HealthResponse struct {
-	Status    string    `json:"status"`
-	Timestamp time.Time `json:"timestamp"`
-	Version   string    `json:"version"`
-}
-
-// Enums
-
-// ComplianceFramework represents supported compliance frameworks
+// ComplianceFramework represents compliance policy templates.
 type ComplianceFramework string
 
 const (
@@ -210,9 +222,16 @@ const (
 	Custom     ComplianceFramework = "custom"
 )
 
-// Error types
+// PolicyMode represents rollout enforcement modes.
+type PolicyMode string
 
-// APIError represents a general API error
+const (
+	Observe PolicyMode = "observe"
+	Enforce PolicyMode = "enforce"
+	Canary  PolicyMode = "canary"
+)
+
+// APIError represents a generic API failure.
 type APIError struct {
 	StatusCode int
 	Message    string
@@ -222,7 +241,7 @@ func (e *APIError) Error() string {
 	return e.Message
 }
 
-// AuthenticationError represents an authentication failure
+// AuthenticationError represents an authentication failure.
 type AuthenticationError struct {
 	Message string
 }
@@ -231,7 +250,7 @@ func (e *AuthenticationError) Error() string {
 	return e.Message
 }
 
-// ValidationError represents a validation failure
+// ValidationError represents a validation failure.
 type ValidationError struct {
 	Message string
 }
@@ -240,7 +259,7 @@ func (e *ValidationError) Error() string {
 	return e.Message
 }
 
-// NotFoundError represents a resource not found error
+// NotFoundError represents a resource-not-found failure.
 type NotFoundError struct {
 	Message string
 }
@@ -249,7 +268,7 @@ func (e *NotFoundError) Error() string {
 	return e.Message
 }
 
-// RateLimitError represents a rate limit exceeded error
+// RateLimitError represents a rate limit failure.
 type RateLimitError struct {
 	Message string
 }
@@ -258,44 +277,17 @@ func (e *RateLimitError) Error() string {
 	return e.Message
 }
 
-// Metrics represents system metrics
-type Metrics struct {
-	CPU         float64            `json:"cpu"`
-	Memory      float64            `json:"memory"`
-	Connections int                `json:"connections"`
-	Throughput  float64            `json:"throughput"`
-	Latency     map[string]float64 `json:"latency"`
+// UnsupportedOperationError indicates an SDK call that does not map to current Axis APIs.
+type UnsupportedOperationError struct {
+	Method  string
+	Message string
 }
 
-// DiagnosticsResult represents the result of a diagnostic run
-type DiagnosticsResult struct {
-	Status  string                 `json:"status"`
-	Checks  map[string]bool        `json:"checks"`
-	Details map[string]interface{} `json:"details"`
-	Errors  []string               `json:"errors"`
+func (e *UnsupportedOperationError) Error() string {
+	return e.Message
 }
 
-// PolicyMode represents policy enforcement modes
-type PolicyMode string
-
-const (
-	Observe PolicyMode = "observe"
-	Enforce PolicyMode = "enforce"
-	Canary  PolicyMode = "canary"
-)
-
-// AgentStatus represents agent status
-type AgentStatus string
-
-const (
-	Online   AgentStatus = "online"
-	Offline  AgentStatus = "offline"
-	Updating AgentStatus = "updating"
-	Error    AgentStatus = "error"
-	Degraded AgentStatus = "degraded"
-)
-
-// AlertSeverity represents alert severity levels
+// AlertSeverity represents alert severity levels.
 type AlertSeverity string
 
 const (

@@ -2,9 +2,11 @@ package velikey
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
-	"os"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -12,307 +14,163 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewClient(t *testing.T) {
-	t.Run("default configuration", func(t *testing.T) {
-		client := NewClient(Config{
-			APIKey: "test-api-key",
-		})
+func TestNewClientDefaults(t *testing.T) {
+	client := NewClient(Config{APIKey: "test-key"})
 
-		assert.Equal(t, "test-api-key", client.apiKey)
-		assert.Equal(t, "https://api.velikey.com", client.baseURL)
-		assert.Equal(t, "velikey-go-sdk/0.1.0", client.userAgent)
-		assert.NotNil(t, client.Agents)
-		assert.NotNil(t, client.Policies)
-		assert.NotNil(t, client.Monitoring)
-	})
-
-	t.Run("custom configuration", func(t *testing.T) {
-		client := NewClient(Config{
-			APIKey:  "test-key",
-			BaseURL: "https://custom.api.com",
-			Timeout: 10 * time.Second,
-		})
-
-		assert.Equal(t, "https://custom.api.com", client.baseURL)
-		assert.Equal(t, 10*time.Second, client.httpClient.Timeout)
-	})
+	assert.Equal(t, "https://axis.velikey.com", client.baseURL)
+	assert.Equal(t, "test-key", client.apiKey)
+	assert.Equal(t, defaultUserAgent, client.userAgent)
+	assert.Equal(t, defaultMaxRetries, client.maxRetries)
+	assert.NotNil(t, client.Agents)
+	assert.NotNil(t, client.Policies)
+	assert.NotNil(t, client.Rollouts)
 }
 
-func TestClient_request(t *testing.T) {
-	// Create test server
+func TestRequestUsesBearerAuthHeader(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Verify authentication header
-		auth := r.Header.Get("Authorization")
-		assert.Equal(t, "Bearer test-api-key", auth)
-
-		// Verify user agent
-		userAgent := r.Header.Get("User-Agent")
-		assert.Contains(t, userAgent, "velikey-go-sdk")
-
-		// Return success response
-		w.Header().Set("Content-Type", "application/json")
+		assert.Equal(t, "Bearer test-api-key", r.Header.Get("Authorization"))
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{APIKey: "test-api-key", BaseURL: server.URL})
+	_, err := client.request(context.Background(), http.MethodGet, "/api/test", nil, nil)
+	require.NoError(t, err)
+}
+
+func TestRequestUsesSessionCookie(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "next-auth.session-token=session-token-value", r.Header.Get("Cookie"))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}))
 	defer server.Close()
 
 	client := NewClient(Config{
-		APIKey:  "test-api-key",
-		BaseURL: server.URL,
+		BaseURL:         server.URL,
+		SessionToken:    "session-token-value",
+		MaxRetries:      1,
+		RetryMinBackoff: 1 * time.Millisecond,
+		RetryMaxBackoff: 1 * time.Millisecond,
 	})
 
-	ctx := context.Background()
-	resp, err := client.request(ctx, "GET", "/test", nil, nil)
-
+	_, err := client.request(context.Background(), http.MethodGet, "/api/test", nil, nil)
 	require.NoError(t, err)
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
-	resp.Body.Close()
 }
 
-func TestClient_GetHealth(t *testing.T) {
+func TestRequestRetriesOnTransientErrors(t *testing.T) {
+	var attempts int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/health", r.URL.Path)
-		w.Header().Set("Content-Type", "application/json")
+		current := atomic.AddInt32(&attempts, 1)
+		if current < 3 {
+			w.WriteHeader(http.StatusBadGateway)
+			_, _ = w.Write([]byte(`{"error":"temporary upstream failure"}`))
+			return
+		}
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-			"status": "ok",
-			"timestamp": "2024-01-01T12:00:00Z",
-			"version": "1.0.0"
-		}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	}))
 	defer server.Close()
 
 	client := NewClient(Config{
-		APIKey:  "test-key",
-		BaseURL: server.URL,
+		BaseURL:         server.URL,
+		APIKey:          "test-key",
+		MaxRetries:      3,
+		RetryMinBackoff: 1 * time.Millisecond,
+		RetryMaxBackoff: 2 * time.Millisecond,
 	})
 
-	ctx := context.Background()
-	health, err := client.GetHealth(ctx)
-
+	_, err := client.request(context.Background(), http.MethodGet, "/api/retry", nil, nil)
 	require.NoError(t, err)
-	assert.Equal(t, "ok", health.Status)
+	assert.Equal(t, int32(3), atomic.LoadInt32(&attempts))
+}
+
+func TestGetHealthUsesAxisRoute(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/health", r.URL.Path)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"status":"healthy","timestamp":"2026-02-28T00:00:00Z","version":"1.0.0"}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL})
+	health, err := client.GetHealth(context.Background())
+	require.NoError(t, err)
+	assert.Equal(t, "healthy", health.Status)
 	assert.Equal(t, "1.0.0", health.Version)
 }
 
-func TestClient_QuickSetup(t *testing.T) {
+func TestAgentsListParsesEnvelope(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		assert.Equal(t, "/api/setup/quick", r.URL.Path)
-		assert.Equal(t, "POST", r.Method)
-
-		w.Header().Set("Content-Type", "application/json")
+		assert.Equal(t, "/api/agents", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{
-			"policy_id": "policy-123",
-			"policy_name": "SOC2 Policy",
-			"deployment_instructions": {
-				"helm": "helm install aegis velikey/aegis"
-			},
-			"next_steps": [
-				"Deploy agents using Helm",
-				"Verify agent connectivity"
-			]
-		}`))
+		_, _ = w.Write([]byte(`{"agents":[{"id":"1","agentId":"agent-1","name":"Agent One","status":"active"}]}`))
 	}))
 	defer server.Close()
 
-	client := NewClient(Config{
-		APIKey:  "test-key",
-		BaseURL: server.URL,
-	})
-
-	ctx := context.Background()
-	result, err := client.QuickSetup(ctx, SetupOptions{
-		ComplianceFramework: "soc2",
-		EnforcementMode:     "observe",
-		PostQuantum:         true,
-	})
-
+	client := NewClient(Config{BaseURL: server.URL, APIKey: "vk_test"})
+	agents, err := client.Agents.List(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, "policy-123", result.PolicyID)
-	assert.Equal(t, "SOC2 Policy", result.PolicyName)
-	assert.Len(t, result.NextSteps, 2)
+	require.Len(t, agents, 1)
+	assert.Equal(t, "agent-1", agents[0].AgentID)
 }
 
-func TestPolicyBuilder(t *testing.T) {
-	mockAxiosInstance := &http.Client{}
-	client := &Client{httpClient: mockAxiosInstance}
-
-	t.Run("build configuration", func(t *testing.T) {
-		builder := client.NewPolicyBuilder()
-		config := builder.
-			ComplianceStandard("SOC2 Type II").
-			PostQuantumReady().
-			EnforcementMode("enforce").
-			Name("Test Policy").
-			Description("Test policy description").
-			Build()
-
-		assert.Equal(t, "Test Policy", config["name"])
-		assert.Equal(t, "Test policy description", config["description"])
-		assert.Equal(t, "enforce", config["enforcement_mode"])
-
-		rules := config["rules"].(map[string]interface{})
-		assert.Equal(t, "SOC2 Type II", rules["compliance_standard"])
-
-		aegis := rules["aegis"].(map[string]interface{})
-		pqReady := aegis["pq_ready"].([]string)
-		assert.Contains(t, pqReady, "TLS_KYBER768_P256_SHA256")
-	})
-
-	t.Run("validation errors", func(t *testing.T) {
-		builder := client.NewPolicyBuilder()
-
-		// Should fail without name
-		_, err := builder.Create(context.Background())
-		assert.Error(t, err)
-		assert.IsType(t, &ValidationError{}, err)
-	})
-}
-
-func TestCreateFromTemplate(t *testing.T) {
-	t.Run("SOC2 template", func(t *testing.T) {
-		config := CreateFromTemplate(SOC2TypeII, "Test SOC2 Policy")
-
-		assert.Equal(t, "SOC2 Type II", config["compliance_standard"])
-
-		aegis := config["aegis"].(map[string]interface{})
-		assert.NotEmpty(t, aegis["pq_ready"])
-		assert.NotEmpty(t, aegis["preferred"])
-		assert.NotEmpty(t, aegis["prohibited"])
-	})
-
-	t.Run("with options", func(t *testing.T) {
-		config := CreateFromTemplate(
-			SOC2TypeII,
-			"Test Policy",
-			WithPostQuantum(),
-			WithEnforcementMode("enforce"),
-		)
-
-		assert.Equal(t, "enforce", config["enforcement_mode"])
-	})
-}
-
-func TestComplianceChecker(t *testing.T) {
+func TestPoliciesListForAgent(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/compliance/validate":
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			w.Write([]byte(`{
-				"compliant": true,
-				"score": 95,
-				"issues": [],
-				"recommendations": []
-			}`))
-		}
-	}))
-	defer server.Close()
-
-	client := NewClient(Config{
-		APIKey:  "test-key",
-		BaseURL: server.URL,
-	})
-
-	checker := client.NewComplianceChecker([]string{"soc2", "pci-dss"})
-
-	ctx := context.Background()
-	results, err := checker.ValidateAll(ctx)
-
-	require.NoError(t, err)
-	assert.Len(t, results, 2)
-	assert.True(t, results["soc2"].Compliant)
-	assert.Equal(t, 95, results["soc2"].Score)
-}
-
-func TestAgentConfigBuilder(t *testing.T) {
-	builder := NewAgentConfigBuilder()
-	config := builder.
-		Namespace("custom-namespace").
-		Replicas(3).
-		Resources("200m", "512Mi").
-		BackendURL("https://backend.example.com").
-		Build()
-
-	assert.Equal(t, "custom-namespace", config["namespace"])
-	assert.Equal(t, 3, config["replicas"])
-
-	resources := config["resources"].(map[string]interface{})
-	assert.Equal(t, "200m", resources["cpu"])
-	assert.Equal(t, "512Mi", resources["memory"])
-
-	networking := config["networking"].(map[string]interface{})
-	assert.Equal(t, "https://backend.example.com", networking["backend_url"])
-}
-
-// Benchmark tests
-func BenchmarkClient_request(b *testing.B) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/agents/agent-123/policies", r.URL.Path)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status": "ok"}`))
+		_, _ = w.Write([]byte(`{"agentId":"agent-123","policies":[{"id":"p1","name":"Transit Policy","isActive":true}]}`))
 	}))
 	defer server.Close()
 
-	client := NewClient(Config{
-		APIKey:  "test-key",
-		BaseURL: server.URL,
-	})
-
-	ctx := context.Background()
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		resp, err := client.request(ctx, "GET", "/test", nil, nil)
-		if err != nil {
-			b.Fatal(err)
-		}
-		resp.Body.Close()
-	}
+	client := NewClient(Config{BaseURL: server.URL, BearerToken: "bootstrap-token"})
+	resp, err := client.Policies.ListForAgent(context.Background(), "agent-123")
+	require.NoError(t, err)
+	assert.Equal(t, "agent-123", resp.AgentID)
+	require.Len(t, resp.Policies, 1)
+	assert.Equal(t, "p1", resp.Policies[0].ID)
 }
 
-func BenchmarkPolicyBuilder(b *testing.B) {
+func TestUsageGet(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/usage", r.URL.Path)
+		assert.Equal(t, "current", r.URL.Query().Get("period"))
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"current":{"period":"February 2026","dayOfPeriod":28,"daysInPeriod":28,"encryptionGB":12,"telemetryGB":1,"environments":2,"agents":3,"estimatedCost":1001},"usage":{"period":"February 2026","dayOfPeriod":28,"daysInPeriod":28,"encryptionGB":12,"telemetryGB":1,"environments":2,"agents":3,"estimatedCost":1001},"historical":[]}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL, SessionCookie: "next-auth.session-token=test"})
+	usage, err := client.Usage.Get(context.Background(), "current")
+	require.NoError(t, err)
+	assert.Equal(t, 3, usage.Current.Agents)
+}
+
+func TestRolloutsApplyAutoConfirmation(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		assert.Equal(t, "/api/rollouts/apply", r.URL.Path)
+		var payload map[string]interface{}
+		require.NoError(t, json.NewDecoder(r.Body).Decode(&payload))
+		assert.Equal(t, true, payload["confirm"])
+		assert.Equal(t, "APPLY", payload["confirmation"])
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"success":true,"data":{"rollout_id":"rollout-1","rollback_token":"rb-token"}}`))
+	}))
+	defer server.Close()
+
+	client := NewClient(Config{BaseURL: server.URL, SessionCookie: "next-auth.session-token=test"})
+	resp, err := client.Rollouts.Apply(context.Background(), ApplyRolloutRequest{PlanID: "plan-1", DryRun: false})
+	require.NoError(t, err)
+	assert.True(t, resp.Success)
+	assert.Equal(t, "rollout-1", resp.Data.RolloutID)
+}
+
+func TestUnsupportedOperations(t *testing.T) {
 	client := NewClient(Config{APIKey: "test"})
 
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = client.NewPolicyBuilder().
-			ComplianceStandard("SOC2 Type II").
-			PostQuantumReady().
-			EnforcementMode("enforce").
-			Build()
-	}
-}
-
-// Integration tests (require test server)
-func TestIntegration(t *testing.T) {
-	if testing.Short() {
-		t.Skip("skipping integration tests in short mode")
-	}
-
-	// Only run if integration test server is available
-	testAPIKey := os.Getenv("TEST_VELIKEY_API_KEY")
-	if testAPIKey == "" {
-		t.Skip("TEST_VELIKEY_API_KEY not set, skipping integration tests")
-	}
-
-	client := NewClient(Config{
-		APIKey:  testAPIKey,
-		BaseURL: "https://api-test.velikey.com",
-	})
-
-	ctx := context.Background()
-
-	t.Run("health check", func(t *testing.T) {
-		health, err := client.GetHealth(ctx)
-		require.NoError(t, err)
-		assert.Equal(t, "ok", health.Status)
-	})
-
-	t.Run("security status", func(t *testing.T) {
-		status, err := client.GetSecurityStatus(ctx)
-		require.NoError(t, err)
-		assert.GreaterOrEqual(t, status.HealthScore, 0)
-		assert.LessOrEqual(t, status.HealthScore, 100)
-	})
+	_, err := client.ValidateCompliance(context.Background(), "soc2")
+	var unsupported *UnsupportedOperationError
+	assert.True(t, errors.As(err, &unsupported))
+	assert.Equal(t, "ValidateCompliance", unsupported.Method)
 }

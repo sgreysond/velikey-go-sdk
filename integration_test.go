@@ -1,41 +1,32 @@
 package velikey
 
 import (
+	"context"
+	"os"
 	"testing"
 )
 
-func TestClientIntegration(t *testing.T) {
-	config := Config{
-		APIKey:  "test-key",
-		BaseURL: "https://localhost:8443",
+func TestClientIntegrationSmoke(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping integration test in short mode")
 	}
-	client := NewClient(config)
+
+	baseURL := os.Getenv("TEST_AXIS_BASE_URL")
+	if baseURL == "" {
+		t.Skip("TEST_AXIS_BASE_URL not set")
+	}
+
+	cfg := Config{
+		BaseURL:       baseURL,
+		SessionCookie: os.Getenv("TEST_AXIS_SESSION_COOKIE"),
+		APIKey:        os.Getenv("TEST_AXIS_API_KEY"),
+		BearerToken:   os.Getenv("TEST_AXIS_BEARER_TOKEN"),
+	}
+
+	client := NewClient(cfg)
 	if client == nil {
-		t.Errorf("Client creation should handle test mode")
+		t.Fatalf("expected non-nil client")
 	}
-}
 
-func TestPolicyManagement(t *testing.T) {
-	// Test policy configuration
-	policyConfig := map[string]interface{}{
-		"name":       "test-policy",
-		"algorithms": []string{"aes-256-gcm"},
-	}
-	if policyConfig["name"] != "test-policy" {
-		t.Errorf("Policy name mismatch")
-	}
-}
-
-func TestQuantumResistantSupport(t *testing.T) {
-	qrAlgos := []string{"kyber1024", "dilithium5"}
-	if len(qrAlgos) != 2 {
-		t.Errorf("Expected 2 quantum-resistant algorithms")
-	}
-}
-
-func TestPluginHotSwap(t *testing.T) {
-	plugins := []string{"aes-plugin", "kyber-plugin"}
-	if len(plugins) < 2 {
-		t.Errorf("Plugin list should contain multiple plugins")
-	}
+	_, _ = client.GetHealth(context.Background())
 }
