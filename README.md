@@ -20,6 +20,12 @@ Validate locally before production rollout:
 GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
 ```
 
+If the default `go` binary is older than the required baseline, point the gate at a patched toolchain explicitly:
+
+```bash
+GO_BINARY=/path/to/go1.25.7 GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
+```
+
 ## Authentication Modes
 
 You can authenticate with one or more modes depending on endpoint contract:
@@ -134,6 +140,7 @@ go mod tidy
 go build ./...
 go test ./...
 GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
+GO_BINARY=/path/to/go1.25.7 GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
 ```
 
 ```go

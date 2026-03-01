@@ -2,6 +2,7 @@
 set -euo pipefail
 
 MIN_VERSION="${GO_SDK_MIN_RUNTIME_VERSION:-1.25.7}"
+GO_BINARY="${GO_BINARY:-go}"
 
 log() {
   printf '[go-runtime-check] %s\n' "$*"
@@ -39,12 +40,12 @@ version_ge() {
   return 1
 }
 
-if ! command -v go >/dev/null 2>&1; then
-  log "FAIL: go command not found"
+if ! command -v "$GO_BINARY" >/dev/null 2>&1; then
+  log "FAIL: go command not found (${GO_BINARY})"
   exit 1
 fi
 
-GO_VERSION_RAW="$(go version)"
+GO_VERSION_RAW="$("$GO_BINARY" version)"
 GO_VERSION_FIELD="$(printf '%s' "$GO_VERSION_RAW" | awk '{print $3}')"
 GO_VERSION="$(normalize_version "$GO_VERSION_FIELD")"
 MIN_NORMALIZED="$(normalize_version "$MIN_VERSION")"
