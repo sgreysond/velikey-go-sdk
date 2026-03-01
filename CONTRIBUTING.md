@@ -15,7 +15,7 @@ We welcome contributions to the VeliKey Go SDK! This document provides guideline
 
 ```bash
 # Clone the repository
-git clone https://github.com/velikey/velikey-go-sdk.git
+git clone https://github.com/sgreysond/velikey-go-sdk.git
 cd velikey-go-sdk
 
 # Initialize Go module (if needed)
@@ -116,7 +116,7 @@ run:
 
 linters-settings:
   goimports:
-    local-prefixes: github.com/velikey/velikey-go-sdk
+    local-prefixes: github.com/sgreysond/velikey-go-sdk
   govet:
     check-shadowing: true
   gocyclo:
@@ -767,7 +767,7 @@ import (
 
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/require"
-    "github.com/velikey/velikey-go-sdk"
+    "github.com/sgreysond/velikey-go-sdk"
 )
 
 var testClient *velikey.Client
@@ -865,7 +865,7 @@ import (
     "time"
 
     "github.com/stretchr/testify/assert"
-    "github.com/velikey/velikey-go-sdk"
+    "github.com/sgreysond/velikey-go-sdk"
 )
 
 func TestBasicExample(t *testing.T) {
@@ -1114,7 +1114,7 @@ perf(client): optimize concurrent request handling
 
 ## Getting Help
 
-- **Go Package Documentation**: [pkg.go.dev/github.com/velikey/velikey-go-sdk](https://pkg.go.dev/github.com/velikey/velikey-go-sdk)
+- **Go Package Documentation**: [pkg.go.dev/github.com/sgreysond/velikey-go-sdk](https://pkg.go.dev/github.com/sgreysond/velikey-go-sdk)
 - **GitHub Discussions**: For questions and ideas
 - **GitHub Issues**: For bug reports and feature requests
 - **Community Forum**: [community.velikey.com](https://community.velikey.com)

@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	velikey "github.com/velikey/velikey-go-sdk"
+	velikey "github.com/sgreysond/velikey-go-sdk"
 )
 
 func main() {

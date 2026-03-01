@@ -1,4 +1,4 @@
-module github.com/velikey/velikey-go-sdk
+module github.com/sgreysond/velikey-go-sdk
 
 go 1.21
 

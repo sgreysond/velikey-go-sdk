@@ -5,7 +5,7 @@ Go SDK for Axis/Aegis control-plane APIs.
 ## Install
 
 ```bash
-go get github.com/velikey/velikey-go-sdk
+go get github.com/sgreysond/velikey-go-sdk
 ```
 
 ## Runtime/Toolchain Requirement
