@@ -8,6 +8,18 @@ Go SDK for Axis/Aegis control-plane APIs.
 go get github.com/velikey/velikey-go-sdk
 ```
 
+## Runtime/Toolchain Requirement
+
+Security closure for current Go stdlib advisories requires operator/runtime hosts to run:
+
+- Go runtime `>= 1.25.7`
+
+Validate locally before production rollout:
+
+```bash
+GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
+```
+
 ## Authentication Modes
 
 You can authenticate with one or more modes depending on endpoint contract:
@@ -121,6 +133,7 @@ Legacy methods that do not map to current Axis public routes return `Unsupported
 go mod tidy
 go build ./...
 go test ./...
+GO_SDK_MIN_RUNTIME_VERSION=1.25.7 bash scripts/check-go-runtime.sh
 ```
 
 ```go
