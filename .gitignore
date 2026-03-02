@@ -68,3 +68,6 @@ temp/
 # Build directories
 build/
 dist/
+
+# Local tool bootstrap artifacts
+.tools/

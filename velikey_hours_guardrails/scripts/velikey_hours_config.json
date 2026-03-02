@@ -1,0 +1,14 @@
+{
+  "timezone": "America/New_York",
+  "workdays": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "start_hour": 9,
+  "end_hour": 17,
+  "exception_tag_prefix": "EXCEPTION:",
+  "allow_env_var": "VLK_ALLOW_DAYTIME_COMMIT"
+}
