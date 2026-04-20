@@ -96,7 +96,7 @@ jobs:
           ## Installation
           
           ```bash
-          go get github.com/velikey/velikey-go-sdk@${{ github.event.inputs.version }}
+          go get github.com/sgreysond/velikey-go-sdk@${{ github.event.inputs.version }}
           ```
         draft: false
         prerelease: false
