@@ -52,6 +52,7 @@ type Client struct {
 	Rollouts        *RolloutsService
 	RolloutReceipts *RolloutReceiptsService
 	Telemetry       *TelemetryService
+	Gateways        *GatewaysService
 
 	// Compatibility service aliases.
 	Monitoring  *MonitoringService
@@ -161,6 +162,7 @@ func NewClient(config Config) *Client {
 	client.Rollouts = &RolloutsService{client: client}
 	client.RolloutReceipts = &RolloutReceiptsService{client: client}
 	client.Telemetry = &TelemetryService{client: client}
+	client.Gateways = &GatewaysService{client: client}
 
 	client.Monitoring = &MonitoringService{client: client}
 	client.Compliance = &ComplianceService{client: client}
