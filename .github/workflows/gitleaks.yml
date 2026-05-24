@@ -1,0 +1,94 @@
+name: Gitleaks
+
+# Scans the repository for accidentally-committed secrets (API keys,
+# tokens, private keys, etc.). Runs on every PR + push to main +
+# nightly.
+#
+# Two modes:
+#   - on PR: scans only the diff introduced by the PR. Fast (< 30s).
+#   - on push/schedule: scans the full git history. Slower but
+#     catches secrets that were merged before this workflow existed.
+#
+# Findings produce a hard failure with an inline annotation pointing
+# at the leak. To suppress a specific finding (e.g. a known test
+# fixture that LOOKS like a secret), add a fingerprint entry to
+# .gitleaksignore at the repo root.
+#
+# Tuning the ruleset: `.gitleaks.toml` at the repo root can extend or
+# override the default rules. The default rules cover AWS, GCP, Stripe,
+# GitHub, Slack, JWT, generic high-entropy strings, etc.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    - cron: '37 4 * * *'
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          # Full history for push/schedule; PR uses the merge ref so
+          # only need shallow + the base commit.
+          fetch-depth: ${{ github.event_name == 'pull_request' && 0 || 0 }}
+
+      - name: Install gitleaks
+        run: |
+          curl -sSL -o /tmp/gitleaks.tar.gz \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          curl -sSL -o /tmp/gitleaks_checksums.txt \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_checksums.txt
+          EXPECTED=$(grep 'gitleaks_8.30.1_linux_x64.tar.gz' /tmp/gitleaks_checksums.txt | awk '{print $1}')
+          ACTUAL=$(sha256sum /tmp/gitleaks.tar.gz | awk '{print $1}')
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::gitleaks checksum mismatch: expected $EXPECTED got $ACTUAL"
+            exit 1
+          fi
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+          sudo mv /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      - name: Run gitleaks (PR — scan the diff)
+        if: github.event_name == 'pull_request'
+        run: |
+          # PR mode: scan only commits introduced by this PR. Anything
+          # already in main is ignored (not the PR's responsibility);
+          # so this fails CI only on NEW leaks being introduced.
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          echo "scanning commits ${BASE_SHA}..${HEAD_SHA}"
+          gitleaks git \
+            --log-opts="${BASE_SHA}..${HEAD_SHA}" \
+            --redact \
+            --verbose \
+            --no-banner \
+            --exit-code=1 \
+            .
+
+      - name: Run gitleaks (push/schedule — scan full history vs baseline)
+        if: github.event_name != 'pull_request'
+        run: |
+          # Push/schedule mode: scan full history. If a baseline file
+          # exists, treat findings in it as "accepted" (existing
+          # technical debt; tracked separately for rotation). Anything
+          # OUTSIDE the baseline is a regression and fails CI.
+          BASELINE_ARG=""
+          if [ -f .gitleaks-baseline.json ]; then
+            BASELINE_ARG="--baseline-path=.gitleaks-baseline.json"
+            echo "using baseline: $(jq 'length' .gitleaks-baseline.json) accepted entries"
+          fi
+          gitleaks git \
+            $BASELINE_ARG \
+            --redact \
+            --verbose \
+            --no-banner \
+            --exit-code=1 \
+            .
