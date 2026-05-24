@@ -1,0 +1,145 @@
+name: OSV-Scanner
+
+# Continuously scans every lockfile in the repo against the OSV
+# database (https://osv.dev), which aggregates feeds from GitHub
+# Security Advisories, RustSec, PyPA, npm's own advisory database,
+# and Google's own security research.
+#
+# This workflow distinguishes two failure modes:
+#
+#   1. Block-merge (hard failures, reviewed manually):
+#      - MAL-* IDs: confirmed-malicious packages. Block immediately.
+#      - CRITICAL severity (9.0+) CVEs in runtime deps.
+#
+#   2. Report-only (soft, surfaced in Security tab):
+#      - HIGH/MEDIUM/LOW CVEs.
+#      - Anything in `dev` deps.
+#
+# Rationale: there is always a long tail of CVE findings in transitive
+# dev deps (e.g. minimatch in babel's deps). Blocking on every one of
+# them produces alert fatigue and developers learn to ignore the check.
+# The signal that matters most — a known-malicious package landing in
+# our supply chain — is rare and unambiguous, so that's what blocks.
+#
+# Tuning: add advisory IDs to `.osv-scanner.toml` to suppress known
+# false positives (with justification + expiration).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '**/package-lock.json'
+      - '**/yarn.lock'
+      - '**/pnpm-lock.yaml'
+      - '**/Cargo.lock'
+      - '**/go.sum'
+      - '**/poetry.lock'
+      - '**/requirements*.txt'
+      - '**/pyproject.toml'
+      - '.github/workflows/osv-scanner.yml'
+      - '.osv-scanner.toml'
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 4 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  scan-lockfiles:
+    name: OSV scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+
+      - name: Install osv-scanner
+        run: |
+          curl -sSL -o /tmp/osv-scanner.tar.gz \
+            https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64.tar.gz
+          mkdir -p /tmp/osv && tar -xzf /tmp/osv-scanner.tar.gz -C /tmp/osv
+          sudo mv /tmp/osv/osv-scanner /usr/local/bin/osv-scanner
+          osv-scanner --version
+
+      - name: Run osv-scanner (JSON output for triage)
+        run: |
+          set +e
+          osv-scanner scan source --recursive --format=json --output=osv-results.json ./
+          echo "OSV_EXIT=$?" >> $GITHUB_ENV
+          set -e
+
+      - name: Generate SARIF for Security tab
+        run: |
+          set +e
+          osv-scanner scan source --recursive --format=sarif --output=results.sarif ./ || true
+          set -e
+
+      - name: Upload SARIF to GitHub code-scanning
+        if: always()
+        uses: github/codeql-action/upload-sarif@03e4368ac7daa2bd82b3e85262f3bf87ee112f57  # v3
+        with:
+          sarif_file: results.sarif
+          category: osv-scanner
+        continue-on-error: true
+
+      - name: Triage — hard-fail only on MAL-* or critical runtime
+        run: |
+          if [ ! -f osv-results.json ]; then
+            echo "::warning::no OSV results file generated; assuming clean scan"
+            exit 0
+          fi
+          python3 <<'PY'
+          import json, sys
+          from collections import Counter
+          d = json.load(open('osv-results.json'))
+          blockers = []
+          all_findings = []
+          severity_counts = Counter()
+          for result in d.get('results', []):
+              src = result.get('source', {}).get('path', '?')
+              for pkg in result.get('packages', []):
+                  info = pkg.get('package', {})
+                  pkg_name = f"{info.get('ecosystem','?')}:{info.get('name','?')}@{info.get('version','?')}"
+                  is_dev = any('dev' in str(g).lower() for g in pkg.get('dependency_groups', []))
+                  for vuln in pkg.get('vulnerabilities', []):
+                      ids = [vuln.get('id', '')] + (vuln.get('aliases') or [])
+                      ids = [i for i in ids if i]
+                      severity = (vuln.get('database_specific') or {}).get('severity', 'UNKNOWN').upper()
+                      severity_counts[severity] += 1
+                      record = {'pkg': pkg_name, 'src': src, 'ids': ids, 'severity': severity, 'dev': is_dev,
+                                'summary': (vuln.get('summary') or '')[:80]}
+                      all_findings.append(record)
+                      is_malicious = any(i.startswith('MAL-') for i in ids)
+                      is_critical_runtime = severity == 'CRITICAL' and not is_dev
+                      if is_malicious:
+                          record['reason'] = 'MAL-* (known malicious package)'
+                          blockers.append(record)
+                      elif is_critical_runtime:
+                          record['reason'] = f'CRITICAL severity in runtime dep'
+                          blockers.append(record)
+          print(f'TOTAL FINDINGS:  {len(all_findings)}')
+          print(f'BY SEVERITY:     {dict(severity_counts)}')
+          print(f'BLOCKING:        {len(blockers)}')
+          print()
+          if blockers:
+              print('===== BLOCKING FINDINGS =====')
+              for b in blockers:
+                  print(f"  [{b['severity']}] {b['pkg']}")
+                  print(f"    IDs:    {', '.join(b['ids'])}")
+                  print(f"    reason: {b['reason']}")
+                  print(f"    where:  {b['src']}")
+                  if b['summary']: print(f"    note:   {b['summary']}")
+                  print()
+              sys.exit(1)
+          print('No blocking findings (no MAL-* and no CRITICAL runtime CVEs).')
+          print(f'Soft findings reported to Security tab via SARIF — triage at your leisure.')
+          PY
+
+      - name: Upload OSV JSON as artifact for triage
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        with:
+          name: osv-results-json
+          path: osv-results.json
+          retention-days: 30

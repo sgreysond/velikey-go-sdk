@@ -1,0 +1,15 @@
+# OSV scanner ignore list.
+#
+# Add entries here ONLY after a security review of the specific advisory.
+# Every entry MUST include:
+#   - The OSV/GHSA/CVE ID
+#   - A justification (why it doesn't apply to us)
+#   - An expiration date (or `ignoreUntil`)
+#
+# Example format:
+#   [[IgnoredVulns]]
+#   id = "GHSA-xxxx-xxxx-xxxx"
+#   ignoreUntil = "2026-12-31"
+#   reason = "Only affects the windows build target which we never use; tracked in DEPS-NN."
+#
+# Currently empty — every advisory is treated as actionable.

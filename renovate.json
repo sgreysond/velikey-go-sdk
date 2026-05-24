@@ -1,0 +1,112 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":semanticCommitTypeAll(deps)",
+    ":enableVulnerabilityAlertsWithLabel(security)"
+  ],
+  "description": [
+    "VeliKey supply-chain cooldown policy.",
+    "",
+    "Every non-security update gets a stability cooldown (minimumReleaseAge)",
+    "before Renovate opens a PR. This blocks attackers who publish a malicious",
+    "version and rely on automated tooling to merge it within hours.",
+    "",
+    "  - dev deps:     14 days cooldown",
+    "  - runtime deps: 30 days cooldown (more conservative — direct attack path)",
+    "  - GitHub Actions SHAs: 14 days",
+    "  - Security patches: 0 days (vulnerabilityAlerts bypass cooldown via osv-scanner)",
+    "",
+    "If we manually want a faster update, add `bypassCooldown` to the PR body",
+    "or merge from a security-vetted branch manually."
+  ],
+
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "rangeStrategy": "pin",
+  "rebaseWhen": "behind-base-branch",
+
+  "schedule": ["after 2am and before 6am on monday"],
+  "timezone": "America/New_York",
+
+  "vulnerabilityAlerts": {
+    "labels": ["security", "dependencies"],
+    "minimumReleaseAge": "0 days",
+    "schedule": ["at any time"]
+  },
+
+  "packageRules": [
+    {
+      "description": "Runtime npm deps — 30 day cooldown.",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["dependencies", "peerDependencies", "optionalDependencies"],
+      "minimumReleaseAge": "30 days",
+      "labels": ["dependencies", "runtime"]
+    },
+    {
+      "description": "Dev npm deps — 14 day cooldown.",
+      "matchManagers": ["npm"],
+      "matchDepTypes": ["devDependencies"],
+      "minimumReleaseAge": "14 days",
+      "labels": ["dependencies", "dev"]
+    },
+    {
+      "description": "Cargo runtime — 30 day cooldown.",
+      "matchManagers": ["cargo"],
+      "matchDepTypes": ["dependencies"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "Cargo dev-dependencies — 14 day cooldown.",
+      "matchManagers": ["cargo"],
+      "matchDepTypes": ["dev-dependencies", "build-dependencies"],
+      "minimumReleaseAge": "14 days"
+    },
+    {
+      "description": "Go modules — 30 day cooldown.",
+      "matchManagers": ["gomod"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "Python (pip, pipenv, poetry, pep621) — 30 day cooldown.",
+      "matchManagers": ["pip_requirements", "pipenv", "poetry", "pep621"],
+      "minimumReleaseAge": "30 days"
+    },
+    {
+      "description": "GitHub Actions — 14 day cooldown. SHA-pinned: Renovate auto-bumps the SHA when a new commit lands on the same tag (after cooldown).",
+      "matchManagers": ["github-actions"],
+      "minimumReleaseAge": "14 days",
+      "pinDigests": true,
+      "labels": ["dependencies", "github-actions"]
+    },
+    {
+      "description": "Major version bumps — extra cooldown (60 days) regardless of ecosystem. Major bumps tend to ship with breaking changes; extra time lets the community shake out regressions.",
+      "matchUpdateTypes": ["major"],
+      "minimumReleaseAge": "60 days",
+      "labels": ["dependencies", "major"]
+    },
+    {
+      "description": "Lockfile-only updates — no cooldown (they're pure transitive resolution; no new code is introduced beyond what's already approved at the top level).",
+      "matchUpdateTypes": ["lockFileMaintenance"],
+      "minimumReleaseAge": "0 days"
+    },
+    {
+      "description": "Group all minor + patch updates for a given ecosystem into a single PR per week. Reduces PR noise + makes review easier.",
+      "matchManagers": ["npm", "cargo", "gomod", "pep621", "poetry", "pip_requirements"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "{{manager}} non-major"
+    }
+  ],
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["after 2am and before 6am on monday"],
+    "automerge": false
+  },
+
+  "osvVulnerabilityAlerts": true,
+  "dependencyDashboard": true,
+  "dependencyDashboardTitle": "Dependency Dashboard — security + cooldown gated updates",
+  "dependencyDashboardLabels": ["dependencies", "dashboard"]
+}
