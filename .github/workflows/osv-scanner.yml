@@ -25,19 +25,14 @@ name: OSV-Scanner
 # false positives (with justification + expiration).
 
 on:
+  # Deliberately not path-filtered. A path filter combined with the
+  # branch-protection "required status check" requirement creates an
+  # un-mergeable deadlock for PRs that don't touch dep files: the
+  # workflow never runs, so the required check sits in "Expected —
+  # Waiting" forever. The scan itself is fast (~30s), so we just run
+  # it on every PR + push to main + nightly.
   pull_request:
     branches: [main]
-    paths:
-      - '**/package-lock.json'
-      - '**/yarn.lock'
-      - '**/pnpm-lock.yaml'
-      - '**/Cargo.lock'
-      - '**/go.sum'
-      - '**/poetry.lock'
-      - '**/requirements*.txt'
-      - '**/pyproject.toml'
-      - '.github/workflows/osv-scanner.yml'
-      - '.osv-scanner.toml'
   push:
     branches: [main]
   schedule:
