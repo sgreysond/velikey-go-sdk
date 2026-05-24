@@ -56,10 +56,20 @@ jobs:
 
       - name: Install osv-scanner
         run: |
-          curl -sSL -o /tmp/osv-scanner.tar.gz \
-            https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64.tar.gz
-          mkdir -p /tmp/osv && tar -xzf /tmp/osv-scanner.tar.gz -C /tmp/osv
-          sudo mv /tmp/osv/osv-scanner /usr/local/bin/osv-scanner
+          # osv-scanner releases ship raw binaries (not tar.gz)
+          curl -sSL -o /tmp/osv-scanner \
+            https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_linux_amd64
+          # Verify the SHA256 checksum (file is published alongside the binary)
+          curl -sSL -o /tmp/osv-scanner_SHA256SUMS \
+            https://github.com/google/osv-scanner/releases/download/v2.3.8/osv-scanner_SHA256SUMS
+          EXPECTED=$(grep 'osv-scanner_linux_amd64$' /tmp/osv-scanner_SHA256SUMS | awk '{print $1}')
+          ACTUAL=$(sha256sum /tmp/osv-scanner | awk '{print $1}')
+          if [ "$EXPECTED" != "$ACTUAL" ]; then
+            echo "::error::osv-scanner checksum mismatch: expected $EXPECTED got $ACTUAL"
+            exit 1
+          fi
+          chmod +x /tmp/osv-scanner
+          sudo mv /tmp/osv-scanner /usr/local/bin/osv-scanner
           osv-scanner --version
 
       - name: Run osv-scanner (JSON output for triage)
