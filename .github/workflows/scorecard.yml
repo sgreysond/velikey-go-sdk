@@ -1,0 +1,69 @@
+name: OSSF Scorecard
+
+# OSSF Scorecard (https://github.com/ossf/scorecard) runs a battery
+# of supply-chain best-practice checks against this repo + publishes
+# the results to the OpenSSF Scorecard public dashboard.
+#
+# Categories evaluated (16 in total, partial list):
+#   - Branch-Protection — main branch protections (we have these)
+#   - Token-Permissions — workflows use the principle of least
+#     privilege for GITHUB_TOKEN
+#   - Pinned-Dependencies — GitHub Actions are SHA-pinned (we do)
+#   - Vulnerabilities — open advisories on declared deps
+#   - SAST — does the repo run static analysis? (we now do — CodeQL)
+#   - Code-Review — are PRs reviewed before merge?
+#   - Signed-Releases — do release artifacts carry signatures?
+#   - Maintained — recent commit cadence
+#   - License — is the license discoverable?
+#   - Dangerous-Workflow — known-dangerous patterns
+#
+# Score is published as a SARIF in the Security tab + as a badge
+# at https://securityscorecards.dev/viewer/?uri=github.com/sgreysond/<repo>
+#
+# Public repos only — Scorecard's public dataset doesn't accept
+# private repos.
+
+on:
+  branch_protection_rule:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '53 4 * * 1'
+
+permissions: read-all
+
+jobs:
+  analysis:
+    name: Scorecard analysis
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      id-token: write
+      contents: read
+      actions: read
+
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5  # v4
+        with:
+          persist-credentials: false
+
+      - uses: ossf/scorecard-action@4eaacf0543bb3f2c246792bd56e8cdeffafb205a  # v2.4.3
+        with:
+          results_file: scorecard-results.sarif
+          results_format: sarif
+          # publish_results enables uploading to the OpenSSF public
+          # dataset. Set to false if you want private results only.
+          publish_results: true
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+        if: always()
+        with:
+          name: scorecard-results
+          path: scorecard-results.sarif
+          retention-days: 30
+
+      - uses: github/codeql-action/upload-sarif@03e4368ac7daa2bd82b3e85262f3bf87ee112f57  # v3
+        if: always()
+        with:
+          sarif_file: scorecard-results.sarif
+          category: ossf-scorecard
