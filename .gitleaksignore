@@ -1,0 +1,11 @@
+# Gitleaks ignore list — fingerprints of known false positives.
+#
+# Each line is a fingerprint in the form:
+#   <commit-sha>:<path>:<rule-id>:<line-number>
+# OR a leak fingerprint:
+#   <leak-fingerprint>
+#
+# To add an entry: run gitleaks locally, copy the fingerprint, paste here
+# WITH A COMMENT explaining why it's a false positive.
+#
+# Currently empty — every detected leak is treated as actionable.
